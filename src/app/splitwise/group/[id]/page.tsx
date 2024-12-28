@@ -365,7 +365,7 @@ export default function GroupPage() {
       fetchGroupDetails()
       fetchExpenses()
     }
-  }, [status, params.id])
+  }, [status, params.id] )
 
   useEffect(() => {
     if (group && group.members.length > 0) {
