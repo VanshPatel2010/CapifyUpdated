@@ -627,10 +627,6 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { Plus } from 'lucide-react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
 
 interface Group {
   _id: string
@@ -675,28 +671,42 @@ export default function SplitwisePage() {
   }
 
   const handleCreateGroup = async () => {
+    setError(null); // Reset any previous errors
+  
+    if (!groupName.trim()) {
+      setError('Group name cannot be empty');
+      return;
+    }
+  
     try {
-      const validMembers = members.filter(member => member.trim() !== '')
+      const validMembers = members.filter(member => member.trim() !== '');
       const response = await fetch('/api/splitwise/groups', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: groupName,
+          name: groupName.trim(),
           members: validMembers,
         }),
-      })
-
-      if (!response.ok) throw new Error('Failed to create group')
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create group');
+      }
       
-      setIsCreateGroupOpen(false)
-      setGroupName('')
-      setMembers([''])
-      fetchGroups()
+      await fetchGroups(); // Refresh the groups list
+      setIsCreateGroupOpen(false);
+      setGroupName('');
+      setMembers(['']);
     } catch (error) {
-      setError('Failed to create group')
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('An unexpected error occurred');
+      }
     }
   }
-
+  
   if (status === 'loading') {
     return <div>Loading...</div>
   }
@@ -738,48 +748,51 @@ export default function SplitwisePage() {
           </div>
         )}
 
-        <Dialog open={isCreateGroupOpen} onOpenChange={setIsCreateGroupOpen}>
-          <DialogContent className="bg-[#1E1E1E] text-white border-gray-800">
-            <DialogHeader>
-              <DialogTitle className="text-2xl font-bold text-center">Create New Group</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <Input
+        {isCreateGroupOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-[#1E1E1E] text-white p-6 rounded shadow-lg w-full max-w-md">
+              <h2 className="text-2xl font-bold text-center mb-4">Create New Group</h2>
+              {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
+              <input
+                type="text"
                 placeholder="Group Name"
                 value={groupName}
                 onChange={(e) => setGroupName(e.target.value)}
-                className="bg-[#2D2D2D] border-gray-700 text-white"
+                className="w-full p-2 mb-4 bg-[#2D2D2D] border border-gray-700 text-white rounded"
               />
               {members.map((member, index) => (
-                <Input
+                <input
                   key={index}
+                  type="text"
                   placeholder={`Member ${index + 1}`}
                   value={member}
                   onChange={(e) => handleMemberChange(index, e.target.value)}
-                  className="bg-[#2D2D2D] border-gray-700 text-white"
+                  className="w-full p-2 mb-2 bg-[#2D2D2D] border border-gray-700 text-white rounded"
                 />
               ))}
-              <Button
+              <button
                 onClick={handleAddMember}
-                className="w-full bg-gradient-to-r from-[#1E3B8B] to-[#87CEEB] hover:opacity-90"
+                className="w-full py-2 mb-2 bg-gradient-to-r from-[#1E3B8B] to-[#87CEEB] hover:opacity-90 text-white rounded"
               >
                 ADD MEMBER
-              </Button>
-              <Button
+              </button>
+              <button
                 onClick={handleCreateGroup}
-                className="w-full bg-gradient-to-r from-[#1E3B8B] to-[#87CEEB] hover:opacity-90"
+                className="w-full py-2 mb-2 bg-gradient-to-r from-[#1E3B8B] to-[#87CEEB] hover:opacity-90 text-white rounded"
               >
                 CREATE GROUP
-              </Button>
+              </button>
+              <button
+                onClick={() => setIsCreateGroupOpen(false)}
+                className="w-full py-2 bg-gray-700 hover:bg-gray-600 text-white rounded"
+              >
+                CANCEL
+              </button>
             </div>
-          </DialogContent>
-        </Dialog>
+          </div>
+        )}
       </div>
     </div>
   )
 }
-
-
-
-
 
