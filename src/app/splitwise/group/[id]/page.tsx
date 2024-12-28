@@ -15,12 +15,18 @@
 //   members: string[]
 // }
 
+// interface Split {
+//   user: string
+//   amount: number
+// }
+
 // interface Expense {
 //   _id: string
 //   description: string
 //   amount: number
 //   paidBy: string
-//   splitAmong: string[]
+//   splitType: 'equal' | 'unequal'
+//   splits: Split[]
 //   date: string
 // }
 
@@ -33,7 +39,8 @@
 //   const [description, setDescription] = useState('')
 //   const [amount, setAmount] = useState('')
 //   const [paidBy, setPaidBy] = useState('')
-//   const [splitType, setSplitType] = useState('equally')
+//   const [splitType, setSplitType] = useState<'equal' | 'unequal'>('equal')
+//   const [splits, setSplits] = useState<Split[]>([])
 //   const [error, setError] = useState<string | null>(null)
 //   const [isLoading, setIsLoading] = useState(true)
 //   const [isAddingExpense, setIsAddingExpense] = useState(false)
@@ -44,6 +51,13 @@
 //       fetchExpenses()
 //     }
 //   }, [status, params.id])
+
+//   useEffect(() => {
+//     if (group && group.members.length > 0) {
+//       const equalSplit = parseFloat(amount) / group.members.length
+//       setSplits(group.members.map(member => ({ user: member, amount: equalSplit })))
+//     }
+//   }, [group, amount])
 
 //   const fetchGroupDetails = async () => {
 //     setIsLoading(true)
@@ -98,6 +112,13 @@
 //     }
 //   }
 
+//   const handleSplitChange = (user: string, newAmount: string) => {
+//     const newSplits = splits.map(split => 
+//       split.user === user ? { ...split, amount: parseFloat(newAmount) || 0 } : split
+//     )
+//     setSplits(newSplits)
+//   }
+
 //   const handleAddExpense = async () => {
 //     if (!description || !amount || !paidBy) return
     
@@ -110,7 +131,8 @@
 //           description,
 //           amount: parseFloat(amount),
 //           paidBy,
-//           splitAmong: group?.members || [],
+//           splitType,
+//           splits,
 //           groupId: params.id,
 //         }),
 //       })
@@ -123,6 +145,7 @@
 //       setDescription('')
 //       setAmount('')
 //       setPaidBy('')
+//       setSplitType('equal')
 //       fetchExpenses()
 //     } catch (error) {
 //       setError(error instanceof Error ? error.message : 'Failed to add expense')
@@ -215,14 +238,34 @@
 //               ))}
 //             </SelectContent>
 //           </Select>
-//           <Select value={splitType} onValueChange={setSplitType}>
+//           <Select value={splitType} onValueChange={(value: 'equal' | 'unequal') => setSplitType(value)}>
 //             <SelectTrigger className="bg-[#2D2D2D] border-gray-700 text-white">
 //               <SelectValue placeholder="Split Type" />
 //             </SelectTrigger>
 //             <SelectContent className="bg-[#2D2D2D] border-gray-700 text-white">
-//               <SelectItem value="equally">Split Equally</SelectItem>
+//               <SelectItem value="equal">Split Equally</SelectItem>
+//               <SelectItem value="unequal">Split Unequally</SelectItem>
 //             </SelectContent>
 //           </Select>
+//           {splitType === 'unequal' && (
+//             <div className="space-y-2">
+//               {splits.map((split, index) => (
+//                 <div key={index} className="flex gap-2">
+//                   <Input
+//                     value={split.user}
+//                     disabled
+//                     className="bg-[#2D2D2D] border-gray-700 text-white flex-grow"
+//                   />
+//                   <Input
+//                     type="number"
+//                     value={split.amount}
+//                     onChange={(e) => handleSplitChange(split.user, e.target.value)}
+//                     className="bg-[#2D2D2D] border-gray-700 text-white w-24"
+//                   />
+//                 </div>
+//               ))}
+//             </div>
+//           )}
 //           <Button
 //             onClick={handleAddExpense}
 //             disabled={isAddingExpense}
@@ -250,33 +293,36 @@
 //                   <div>
 //                     <h3 className="font-semibold">{expense.description}</h3>
 //                     <p className="text-sm text-gray-400">Paid by {expense.paidBy}</p>
+//                     <p className="text-xs text-gray-500">Split: {expense.splitType}</p>
 //                   </div>
 //                   <p className="text-lg">${expense.amount.toFixed(2)}</p>
 //                 </div>
+//                 {expense.splitType === 'unequal' && (
+//                   <div className="mt-2 text-sm">
+//                     <p className="font-semibold">Split details:</p>
+//                     {expense.splits.map((split, index) => (
+//                       <p key={index}>{split.user}: ${split.amount.toFixed(2)}</p>
+//                     ))}
+//                   </div>
+//                 )}
 //               </div>
 //             ))
 //           )}
 //         </div>
 
 //         <div className="space-y-4">
-//           <h2 className="text-xl font-semibold text-[#87CEEB]">Charts</h2>
+//           <h2 className="text-xl font-semibold text-[#87CEEB]"></h2>
 //           {/* Add charts implementation here */}
 //         </div>
 //       </div>
 //     </div>
 //   )
 // }
-
 'use client'
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useParams } from 'next/navigation'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Loader2 } from 'lucide-react'
 
 interface Group {
   _id: string
@@ -361,7 +407,7 @@ export default function GroupPage() {
 
   const handleAddMember = async () => {
     if (!newMember.trim()) return
-    
+
     try {
       const response = await fetch(`/api/splitwise/groups/${params.id}/members`, {
         method: 'POST',
@@ -373,7 +419,7 @@ export default function GroupPage() {
         const errorData = await response.json()
         throw new Error(errorData.error || 'Failed to add member')
       }
-      
+
       setNewMember('')
       fetchGroupDetails()
     } catch (error) {
@@ -382,7 +428,7 @@ export default function GroupPage() {
   }
 
   const handleSplitChange = (user: string, newAmount: string) => {
-    const newSplits = splits.map(split => 
+    const newSplits = splits.map(split =>
       split.user === user ? { ...split, amount: parseFloat(newAmount) || 0 } : split
     )
     setSplits(newSplits)
@@ -390,7 +436,7 @@ export default function GroupPage() {
 
   const handleAddExpense = async () => {
     if (!description || !amount || !paidBy) return
-    
+
     setIsAddingExpense(true)
     try {
       const response = await fetch('/api/splitwise/expense', {
@@ -410,7 +456,7 @@ export default function GroupPage() {
         const errorData = await response.json()
         throw new Error(errorData.error || 'Failed to add expense')
       }
-      
+
       setDescription('')
       setAmount('')
       setPaidBy('')
@@ -426,7 +472,7 @@ export default function GroupPage() {
   if (status === 'loading' || isLoading) {
     return (
       <div className="min-h-screen bg-[#121212] text-white flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin" />
+        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
     )
   }
@@ -442,10 +488,10 @@ export default function GroupPage() {
   if (error || !group) {
     return (
       <div className="min-h-screen bg-[#121212] text-white flex items-center justify-center">
-        <Alert variant="destructive">
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error || 'Failed to load group data'}</AlertDescription>
-        </Alert>
+        <div className="bg-red-500 text-white p-4 rounded">
+          <h2 className="font-bold">Error</h2>
+          <p>{error || 'Failed to load group data'}</p>
+        </div>
       </div>
     )
   }
@@ -465,90 +511,88 @@ export default function GroupPage() {
             ))}
           </div>
           <div className="flex gap-2">
-            <Input
+            <input
               placeholder="Add new member"
               value={newMember}
               onChange={(e) => setNewMember(e.target.value)}
-              className="bg-[#2D2D2D] border-gray-700 text-white"
+              className="bg-[#2D2D2D] border-gray-700 text-white px-4 py-2 rounded w-full"
             />
-            <Button
+            <button
               onClick={handleAddMember}
-              className="bg-gradient-to-r from-[#1E3B8B] to-[#87CEEB] hover:opacity-90"
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
             >
               ADD MEMBER
-            </Button>
+            </button>
           </div>
         </div>
 
         <div className="space-y-4">
           <h2 className="text-xl font-semibold text-[#87CEEB]">Add New Expense</h2>
-          <Input
+          <input
             placeholder="Description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="bg-[#2D2D2D] border-gray-700 text-white"
+            className="bg-[#2D2D2D] border-gray-700 text-white px-4 py-2 rounded w-full"
           />
-          <Input
+          <input
             type="number"
             placeholder="0"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className="bg-[#2D2D2D] border-gray-700 text-white"
+            className="bg-[#2D2D2D] border-gray-700 text-white px-4 py-2 rounded w-full"
           />
-          <Select value={paidBy} onValueChange={setPaidBy}>
-            <SelectTrigger className="bg-[#2D2D2D] border-gray-700 text-white">
-              <SelectValue placeholder="Select Payer" />
-            </SelectTrigger>
-            <SelectContent className="bg-[#2D2D2D] border-gray-700 text-white">
-              {group.members.map((member) => (
-                <SelectItem key={member} value={member}>
-                  {member}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={splitType} onValueChange={(value: 'equal' | 'unequal') => setSplitType(value)}>
-            <SelectTrigger className="bg-[#2D2D2D] border-gray-700 text-white">
-              <SelectValue placeholder="Split Type" />
-            </SelectTrigger>
-            <SelectContent className="bg-[#2D2D2D] border-gray-700 text-white">
-              <SelectItem value="equal">Split Equally</SelectItem>
-              <SelectItem value="unequal">Split Unequally</SelectItem>
-            </SelectContent>
-          </Select>
+          <select
+            value={paidBy}
+            onChange={(e) => setPaidBy(e.target.value)}
+            className="bg-[#2D2D2D] border-gray-700 text-white px-4 py-2 rounded w-full"
+          >
+            <option value="" disabled>
+              Select Payer
+            </option>
+            {group.members.map((member) => (
+              <option key={member} value={member} className="bg-[#2D2D2D]">
+                {member}
+              </option>
+            ))}
+          </select>
+          <select
+            value={splitType}
+            onChange={(e) => setSplitType(e.target.value as 'equal' | 'unequal')}
+            className="bg-[#2D2D2D] border-gray-700 text-white px-4 py-2 rounded w-full"
+          >
+            <option value="equal" className="bg-[#2D2D2D]">
+              Split Equally
+            </option>
+            <option value="unequal" className="bg-[#2D2D2D]">
+              Split Unequally
+            </option>
+          </select>
           {splitType === 'unequal' && (
             <div className="space-y-2">
               {splits.map((split, index) => (
                 <div key={index} className="flex gap-2">
-                  <Input
+                  <input
                     value={split.user}
                     disabled
-                    className="bg-[#2D2D2D] border-gray-700 text-white flex-grow"
+                    className="bg-[#2D2D2D] border-gray-700 text-white px-4 py-2 rounded flex-grow"
                   />
-                  <Input
+                  <input
                     type="number"
                     value={split.amount}
                     onChange={(e) => handleSplitChange(split.user, e.target.value)}
-                    className="bg-[#2D2D2D] border-gray-700 text-white w-24"
+                    className="bg-[#2D2D2D] border-gray-700 text-white px-4 py-2 rounded w-24"
                   />
                 </div>
               ))}
             </div>
           )}
-          <Button
+          <button
             onClick={handleAddExpense}
             disabled={isAddingExpense}
-            className="w-full bg-gradient-to-r from-[#1E3B8B] to-[#87CEEB] hover:opacity-90"
+            className="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
           >
-            {isAddingExpense ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Adding Expense...
-              </>
-            ) : (
-              'ADD EXPENSE'
-            )}
-          </Button>
+            {isAddingExpense ? 'Adding Expense...' : 'ADD EXPENSE'}
+          </button>
         </div>
 
         <div className="space-y-4">
@@ -564,28 +608,23 @@ export default function GroupPage() {
                     <p className="text-sm text-gray-400">Paid by {expense.paidBy}</p>
                     <p className="text-xs text-gray-500">Split: {expense.splitType}</p>
                   </div>
-                  <p className="text-lg">${expense.amount.toFixed(2)}</p>
+                  <p className="text-lg">₹{expense.amount.toFixed(2)}</p>
                 </div>
-                {expense.splitType === 'unequal' && (
-                  <div className="mt-2 text-sm">
-                    <p className="font-semibold">Split details:</p>
-                    {expense.splits.map((split, index) => (
-                      <p key={index}>{split.user}: ${split.amount.toFixed(2)}</p>
-                    ))}
-                  </div>
-                )}
+                <div className="mt-2 text-sm">
+  <p className="font-semibold">Split details:</p>
+  {expense.splits && expense.splits.length > 0 ? (
+    expense.splits.map((split, index) => (
+      <p key={index}>{split.user}: ₹{split.amount.toFixed(2)}</p>
+    ))
+  ) : (
+    <p>No split details available.</p>
+  )}
+</div>  
               </div>
             ))
           )}
-        </div>
-
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold text-[#87CEEB]"></h2>
-          {/* Add charts implementation here */}
         </div>
       </div>
     </div>
   )
 }
-
-
