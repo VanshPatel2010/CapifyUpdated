@@ -255,7 +255,7 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { NavBar } from '../components/NavBar'
+import { NavBar } from '@/components/Navbar'
 import { signIn } from 'next-auth/react'
 import { Trash2, Plus, DollarSign } from 'lucide-react'
 import { motion } from 'framer-motion'
