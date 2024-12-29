@@ -18,12 +18,6 @@ export default function BudgetTracker() {
   const [newExpense, setNewExpense] = useState<Omit<Expense, 'date'> & { categoryIndex: number }>({ categoryIndex: 0, description: '', amount: 0 })
   const [newBudgetAmount, setNewBudgetAmount] = useState<number>(0)
 
-  useEffect(() => {
-    if (status === 'authenticated' && session?.user?.id) {
-      fetchBudget()
-    }
-  }, [status, session])
-
   const fetchBudget = async () => {
     try {
       setLoading(true)
@@ -45,6 +39,14 @@ export default function BudgetTracker() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user?.id) {
+      fetchBudget()
+    }
+  }, [status, session])
+
+  
 
   const createOrUpdateBudget = async (updatedBudget: Budget) => {
     if (!budget) return
