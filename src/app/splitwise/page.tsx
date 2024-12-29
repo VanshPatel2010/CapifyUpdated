@@ -11,7 +11,7 @@ interface Group {
 }
 
 export default function SplitwisePage() {
-  const { data: session,status } = useSession()
+  const { data: session, status } = useSession()
   const [groups, setGroups] = useState<Group[]>([])
   const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false)
   const [groupName, setGroupName] = useState('')
@@ -30,11 +30,18 @@ export default function SplitwisePage() {
       if (!response.ok) throw new Error('Failed to fetch groups')
       const data = await response.json()
       setGroups(data)
-    } catch (error) {
-      setError('Failed to fetch groups')
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setError(error.message)
+      } else {
+        setError('Failed to fetch groups')
+      }
     }
   }
 
+  // Rest of your component code remains the same
+
+  // Rest of your component code remains the same
   const handleAddMember = () => {
     setMembers([...members, ''])
   }
@@ -97,6 +104,12 @@ export default function SplitwisePage() {
           <h1 className="text-4xl font-bold text-center mb-4">Dashboard</h1>
         </div>
 
+       {/* Add error message display here */}
+       {error && (
+          <div className="bg-red-500/20 border border-red-500/50 text-red-300 p-4 rounded-lg mb-4">
+            {error}
+          </div>
+        )}
         <button
           onClick={() => setIsCreateGroupOpen(true)}
           className="text-[#87CEEB] hover:text-[#5F9EA0] mb-8 block mx-auto text-lg"

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import Budget from '@/models/Budget'
 import mongoose from 'mongoose'
-import { authOptions } from '../auth/[...nextauth]/route'
+import { authOptions } from '../auth/[...nextauth]/auth.config'
 import { Budget as BudgetType } from '@/types/budget'
 
 export async function GET() {

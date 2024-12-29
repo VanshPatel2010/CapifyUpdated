@@ -8,6 +8,7 @@ import { signIn } from 'next-auth/react'
 import { Trash2, Plus, DollarSign } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { Budget, Category, Expense } from '@/types/budget';
+import { useCallback } from 'react';
 
 
 export default function BudgetTracker() {
@@ -18,7 +19,7 @@ export default function BudgetTracker() {
   const [newExpense, setNewExpense] = useState<Omit<Expense, 'date'> & { categoryIndex: number }>({ categoryIndex: 0, description: '', amount: 0 })
   const [newBudgetAmount, setNewBudgetAmount] = useState<number>(0)
 
-  const fetchBudget = async () => {
+  const fetchBudget = useCallback(async () => {
     try {
       setLoading(true)
       const res = await fetch('/api/budget')
@@ -38,13 +39,13 @@ export default function BudgetTracker() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [session])
 
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.id) {
       fetchBudget()
     }
-  }, [status, session])
+  }, [status, session, fetchBudget])
 
   
 

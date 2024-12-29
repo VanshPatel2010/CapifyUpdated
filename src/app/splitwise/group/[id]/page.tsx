@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useParams } from 'next/navigation'
+import { useCallback } from 'react';
 
 interface Group {
   _id: string
@@ -27,7 +28,7 @@ interface Expense {
 
 export default function GroupPage() {
   const params = useParams()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const [group, setGroup] = useState<Group | null>(null)
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [newMember, setNewMember] = useState('')
@@ -41,7 +42,7 @@ export default function GroupPage() {
   const [isAddingExpense, setIsAddingExpense] = useState(false)
 
 
-  const fetchGroupDetails = async () => {
+  const fetchGroupDetails = useCallback(async () => {
     setIsLoading(true)
     try {
       const response = await fetch(`/api/splitwise/groups/${params.id}`)
@@ -56,9 +57,9 @@ export default function GroupPage() {
     } finally {
       setIsLoading(false)
     }
-  }
-
-  const fetchExpenses = async () => {
+  }, [params.id])
+  
+  const fetchExpenses = useCallback(async () => {
     try {
       const response = await fetch(`/api/splitwise/expense?groupId=${params.id}`)
       if (!response.ok) {
@@ -70,14 +71,14 @@ export default function GroupPage() {
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to fetch expenses')
     }
-  }
+  }, [params.id])
 
   useEffect(() => {
     if (status === 'authenticated' && params.id) {
       fetchGroupDetails()
       fetchExpenses()
     }
-  }, [status, params.id] )
+  }, [status, params.id, fetchGroupDetails, fetchExpenses] )
 
   useEffect(() => {
     if (group && group.members.length > 0) {

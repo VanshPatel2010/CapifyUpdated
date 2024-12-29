@@ -1,19 +1,19 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import mongoose from 'mongoose'
 import Group from '@/models/Group'
-import { authOptions } from '../../../auth/[...nextauth]/route'
+import { authOptions } from '../../../auth/[...nextauth]/auth.config'
 
 export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+  request: NextRequest,
+): Promise<NextResponse> {
   const session = await getServerSession(authOptions)
   if (!session?.user?.email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { id } = params
+  // Extract the id from the URL
+  const id = request.nextUrl.pathname.split('/').pop()
 
   try {
     await mongoose.connect(process.env.MONGODB_URI!)
@@ -32,4 +32,3 @@ export async function GET(
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }
-

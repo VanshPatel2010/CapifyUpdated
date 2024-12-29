@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { useSession, signIn, signOut } from 'next-auth/react'
-import { Button } from '@/components/ui/button'
 
 export function NavBar() {
   const { data: session, status } = useSession()
@@ -17,15 +16,24 @@ export function NavBar() {
           {status === 'authenticated' ? (
             <>
               <span>Signed in as {session.user?.email}</span>
-              <Button onClick={() => signOut()}>Sign Out</Button>
+              <button 
+                onClick={() => signOut()} 
+                className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-md text-white font-medium transition-colors"
+              >
+                Sign Out
+              </button>
               <span>Balance {session.user?.balance}</span>
             </>
           ) : (
-            <Button onClick={() => signIn()}>Sign In</Button>
+            <button 
+              onClick={() => signIn()} 
+              className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-md text-white font-medium transition-colors"
+            >
+              Sign In
+            </button>
           )}
         </div>
       </div>
     </nav>
   )
 }
-

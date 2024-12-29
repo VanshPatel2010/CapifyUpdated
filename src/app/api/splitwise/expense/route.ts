@@ -280,7 +280,7 @@ import { getServerSession } from 'next-auth/next'
 import mongoose from 'mongoose'
 import Expense from '@/models/Expense'
 import Group from '@/models/Group'
-import { authOptions } from '../../auth/[...nextauth]/route'
+import { authOptions } from '../../auth/[...nextauth]/auth.config'
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions)
