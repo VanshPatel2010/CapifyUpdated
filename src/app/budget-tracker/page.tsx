@@ -3,9 +3,9 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { NavBar } from '@/components/Navbar'
+
 import { signIn } from 'next-auth/react'
-import { Trash2, Plus, DollarSign } from 'lucide-react'
+import { Trash2, Plus} from 'lucide-react'
 import { motion } from 'framer-motion'
 import { Budget, Category, Expense } from '@/types/budget';
 import { useCallback } from 'react';
@@ -72,24 +72,44 @@ export default function BudgetTracker() {
   }
 
   const addCategory = () => {
-    if (!budget) return;
-  
-    // Calculate total allocated budget
-    const totalAllocatedBudget = budget.categories.reduce((sum, category) => sum + category.allocation, 0) + newCategory.allocation;
-  
-    if (totalAllocatedBudget > budget.totalBudget) {
-      alert("Total allocation exceeds the total budget. Adjust allocations.");
-      return;
-    }
-  
-    const updatedBudget: Budget = {
-      ...budget,
-      categories: [...budget.categories, { ...newCategory, expenses: [] }],
-    };
-    setBudget(updatedBudget);
-    setNewCategory({ name: '', allocation: 0 });
-    createOrUpdateBudget(updatedBudget);
+  if (!budget) return;
+
+  // Validate if category name is empty
+  if (!newCategory.name.trim()) {
+    alert("Category name cannot be empty");
+    return;
+  }
+
+  // Check if category already exists (case-insensitive)
+  const categoryExists = budget.categories.some(
+    category => category.name.toLowerCase() === newCategory.name.trim().toLowerCase()
+  );
+
+  if (categoryExists) {
+    alert("This category already exists. Please use a different name.");
+    return;
+  }
+
+  // Calculate total allocated budget
+  const totalAllocatedBudget = budget.categories.reduce(
+    (sum, category) => sum + category.allocation, 
+    0
+  ) + newCategory.allocation;
+
+  if (totalAllocatedBudget > budget.totalBudget) {
+    alert("Total allocation exceeds the total budget. Adjust allocations.");
+    return;
+  }
+
+  const updatedBudget: Budget = {
+    ...budget,
+    categories: [...budget.categories, { ...newCategory, expenses: [] }],
   };
+  
+  setBudget(updatedBudget);
+  setNewCategory({ name: '', allocation: 0 });
+  createOrUpdateBudget(updatedBudget);
+};
 
   const addExpense = () => {
     if (!budget) return;
@@ -165,96 +185,130 @@ export default function BudgetTracker() {
   
   if (loading) return <div>Loading...</div>;
 
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-100 to-white">
-      <NavBar />
-      <main className="container mx-auto p-4 sm:p-6 lg:p-8">
-        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6 text-center text-blue-600">Budget Tracker</h1>
+    <div style={{ minHeight: '100vh', backgroundColor: '#000000', color: 'white' }}>
+
+      <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
+        <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+          <h1 style={{ fontSize: '3.75rem', fontWeight: 'bold', marginBottom: '1rem' }}>Budget Bliss</h1>
+          <p style={{ fontSize: '1.125rem', color: '#a0aec0' }}>
+            Track your expenses seamlessly with our{" "}
+            <span style={{ color: 'white' }}>Budget Tracker</span>.
+          </p>
+        </div>
+  
         {budget && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-              <div className="bg-blue-500 text-white p-4">
-                <h2 className="text-2xl font-bold">Total Budget</h2>
+          <div style={{ maxWidth: '32rem', margin: '0 auto' }}>
+            {/* Set Budget Section */}
+            <div style={{ backgroundColor: '#1a202c', borderRadius: '0.5rem', border: '1px solid #2d3748', padding: '1.5rem', marginBottom: '2rem' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>Set Your Budget</h2>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', color: '#a0aec0', marginBottom: '0.5rem' }}>Total Budget:</label>
+                <input
+                  type="number"
+                  value={budget.totalBudget}
+                  onChange={(e) => setBudget({ ...budget, totalBudget: Number(e.target.value) })}
+                  style={{ width: '100%', padding: '0.75rem', backgroundColor: '#2d3748', border: '1px solid #4a5568', borderRadius: '0.375rem', color: 'white', marginBottom: '0.5rem' }}
+                />
+                <button
+                  onClick={() => createOrUpdateBudget(budget)}
+                  style={{ width: '100%', padding: '0.75rem', backgroundColor: '#2d3748', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', transition: 'background-color 0.2s' }}
+                >
+                  Set Budget
+                </button>
               </div>
-              <div className="p-6">
-                <p className="text-3xl font-semibold mb-4">Current Budget: ${budget.totalBudget.toFixed(2)}</p>
-                <div className="flex items-center gap-2">
+            </div>
+  
+            {/* Increase Budget Section */}
+            <div style={{ backgroundColor: '#1a202c', borderRadius: '0.5rem', border: '1px solid #2d3748', padding: '1.5rem', marginBottom: '2rem' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>Increase Your Budget</h2>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', color: '#a0aec0', marginBottom: '0.5rem' }}>Additional Amount:</label>
+                <input
+                  type="number"
+                  value={newBudgetAmount}
+                  onChange={(e) => setNewBudgetAmount(Number(e.target.value))}
+                  style={{ width: '100%', padding: '0.75rem', backgroundColor: '#2d3748', border: '1px solid #4a5568', borderRadius: '0.375rem', color: 'white', marginBottom: '0.5rem' }}
+                />
+                <button
+                  onClick={addBudget}
+                  style={{ width: '100%', padding: '0.75rem', backgroundColor: '#2d3748', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', transition: 'background-color 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <Plus style={{ marginRight: '0.5rem', height: '1rem', width: '1rem' }} />
+                  Increase Budget
+                </button>
+              </div>
+            </div>
+  
+            {/* Add Category Section */}
+            <div style={{ backgroundColor: '#1a202c', borderRadius: '0.5rem', border: '1px solid #2d3748', padding: '1.5rem', marginBottom: '2rem' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>Add Category</h2>
+              <div>
+                <input
+                  type="text"
+                  placeholder="Category Name"
+                  value={newCategory.name}
+                  onChange={(e) => setNewCategory(prev => ({ ...prev, name: e.target.value }))}
+                  style={{ width: '100%', padding: '0.75rem', backgroundColor: '#2d3748', border: '1px solid #4a5568', borderRadius: '0.375rem', color: 'white', marginBottom: '0.5rem' }}
+                />
+                <input
+                  type="number"
+                  placeholder="Allocation"
+                  value={newCategory.allocation}
+                  onChange={(e) => setNewCategory(prev => ({ ...prev, allocation: Number(e.target.value) }))}
+                  style={{ width: '100%', padding: '0.75rem', backgroundColor: '#2d3748', border: '1px solid #4a5568', borderRadius: '0.375rem', color: 'white', marginBottom: '0.5rem' }}
+                />
+                <button
+                  onClick={addCategory}
+                  style={{ width: '100%', padding: '0.75rem', backgroundColor: '#2d3748', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', transition: 'background-color 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <Plus style={{ marginRight: '0.5rem', height: '1rem', width: '1rem' }} />
+                  Add Category
+                </button>
+              </div>
+            </div>
+  
+            {/* Add Expense Section */}
+            {budget.categories.length > 0 && (
+              <div style={{ backgroundColor: '#1a202c', borderRadius: '0.5rem', border: '1px solid #2d3748', padding: '1.5rem', marginBottom: '2rem' }}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>Add Expense</h2>
+                <div>
+                  <select
+                    value={newExpense.categoryIndex}
+                    onChange={(e) => setNewExpense(prev => ({ ...prev, categoryIndex: Number(e.target.value) }))}
+                    style={{ width: '100%', padding: '0.75rem', backgroundColor: '#2d3748', border: '1px solid #4a5568', borderRadius: '0.375rem', color: 'white', marginBottom: '0.5rem' }}
+                  >
+                    {budget.categories.map((category, index) => (
+                      <option key={index} value={index}>{category.name}</option>
+                    ))}
+                  </select>
+                  <input
+                    placeholder="Description"
+                    value={newExpense.description}
+                    onChange={(e) => setNewExpense(prev => ({ ...prev, description: e.target.value }))}
+                    style={{ width: '100%', padding: '0.75rem', backgroundColor: '#2d3748', border: '1px solid #4a5568', borderRadius: '0.375rem', color: 'white', marginBottom: '0.5rem' }}
+                  />
                   <input
                     type="number"
-                    value={newBudgetAmount}
-                    onChange={(e) => setNewBudgetAmount(Number(e.target.value))}
-                    placeholder="Enter amount to add"
-                    className="flex-grow border rounded px-2 py-1"
+                    placeholder="Amount"
+                    value={newExpense.amount}
+                    onChange={(e) => setNewExpense(prev => ({ ...prev, amount: Number(e.target.value) }))}
+                    style={{ width: '100%', padding: '0.75rem', backgroundColor: '#2d3748', border: '1px solid #4a5568', borderRadius: '0.375rem', color: 'white', marginBottom: '0.5rem' }}
                   />
-                  <button onClick={addBudget} className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">
-                    <Plus className="mr-2 h-4 w-4" /> Add to Budget
+                  <button
+                    onClick={addExpense}
+                    style={{ width: '100%', padding: '0.75rem', backgroundColor: '#2d3748', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', transition: 'background-color 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    {/* <DollarSign style={{ marginRight: '0.5rem', height: '1rem', width: '1rem' }} /> */}
+                    Add Expense
                   </button>
                 </div>
               </div>
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-                <div className="bg-purple-500 text-white p-4">
-                  <h2 className="text-xl font-bold">Add Category</h2>
-                </div>
-                <div className="p-6">
-                  <input
-                    placeholder="Category Name"
-                    value={newCategory.name}
-                    onChange={(e) => setNewCategory(prev => ({ ...prev, name: e.target.value }))}
-                    className="mb-2 w-full p-2 border rounded"
-                  />
-                  <input
-                    type="number"
-                    placeholder="Allocation"
-                    value={newCategory.allocation}
-                    onChange={(e) => setNewCategory(prev => ({ ...prev, allocation: Number(e.target.value) }))}
-                    className="mb-2 w-full p-2 border rounded"
-                  />
-                  <button onClick={addCategory} className="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded">
-                    <Plus className="mr-2 h-4 w-4" /> Add Category
-                  </button>
-                </div>
-              </div>
-
-              {budget.categories.length > 0 && (
-                <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-                  <div className="bg-orange-500 text-white p-4">
-                    <h2 className="text-xl font-bold">Add Expense</h2>
-                  </div>
-                  <div className="p-6">
-                    <select
-                      value={newExpense.categoryIndex}
-                      onChange={(e) => setNewExpense(prev => ({ ...prev, categoryIndex: Number(e.target.value) }))}
-                      className="mb-2 w-full p-2 border rounded"
-                    >
-                      {budget.categories.map((category, index) => (
-                        <option key={index} value={index}>{category.name}</option>
-                      ))}
-                    </select>
-                    <input
-                      placeholder="Description"
-                      value={newExpense.description}
-                      onChange={(e) => setNewExpense(prev => ({ ...prev, description: e.target.value }))}
-                      className="mb-2 w-full p-2 border rounded"
-                    />
-                    <input
-                      type="number"
-                      placeholder="Amount"
-                      value={newExpense.amount}
-                      onChange={(e) => setNewExpense(prev => ({ ...prev, amount: Number(e.target.value) }))}
-                      className="mb-2 w-full p-2 border rounded"
-                    />
-                    <button onClick={addExpense} className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded">
-                      <DollarSign className="mr-2 h-4 w-4" /> Add Expense
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            )}
+  
+            {/* Categories Grid */}
+            <div style={{ display: 'grid', gap: '1.5rem', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))' }}>
               {budget.categories.map((category, index) => (
                 <motion.div
                   key={index}
@@ -262,27 +316,44 @@ export default function BudgetTracker() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: index * 0.1 }}
                 >
-                  <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-                    <div className="bg-indigo-500 text-white p-4 flex flex-row items-center justify-between">
-                      <h2 className="text-xl font-bold">{category.name}</h2>
+                  <div style={{ backgroundColor: '#1a202c', borderRadius: '0.5rem', border: '1px solid #2d3748', overflow: 'hidden' }}>
+                    <div style={{ padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #2d3748' }}>
+                      <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>{category.name}</h2>
                       <button
-                        className="h-8 w-8 bg-red-500 hover:bg-red-600 p-1 rounded"
                         onClick={() => deleteCategory(index)}
+                        style={{ padding: '0.25rem', backgroundColor: 'transparent', border: 'none', cursor: 'pointer' }}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 style={{ height: '1rem', width: '1rem' }} />
                       </button>
                     </div>
-                    <div className="p-4">
-                      <p className="text-lg font-semibold mb-2">Allocation: ${category.allocation.toFixed(2)}</p>
-                      <p className="font-medium mb-2">Expenses:</p>
-                      <ul className="space-y-1">
-                        {category.expenses.map((expense, expIndex) => (
-                          <li key={expIndex} className="flex justify-between items-center bg-gray-100 p-2 rounded">
-                            <span>{expense.description}</span>
-                            <span className="font-semibold">${expense.amount.toFixed(2)}</span>
-                          </li>
-                        ))}
-                      </ul>
+                    <div style={{ padding: '1rem' }}>
+                      <p style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '0.5rem' }}>
+                        Allocation: ₹{category.allocation.toFixed(2)}
+                      </p>
+                      {category.expenses.length > 0 && (
+                        <>
+                          <p style={{ fontWeight: '500', marginBottom: '0.5rem' }}>Expenses:</p>
+                          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                            {category.expenses.map((expense, expIndex) => (
+                              <li
+                                key={expIndex}
+                                style={{
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center',
+                                  backgroundColor: '#2d3748',
+                                  padding: '0.75rem',
+                                  borderRadius: '0.375rem',
+                                  marginBottom: '0.5rem'
+                                }}
+                              >
+                                <span>{expense.description}</span>
+                                <span style={{ fontWeight: '600' }}>₹{expense.amount.toFixed(2)}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </>
+                      )}
                     </div>
                   </div>
                 </motion.div>
@@ -293,4 +364,7 @@ export default function BudgetTracker() {
       </main>
     </div>
   )
+  
+  
 }
+

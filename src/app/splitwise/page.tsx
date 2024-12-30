@@ -39,9 +39,6 @@ export default function SplitwisePage() {
     }
   }
 
-  // Rest of your component code remains the same
-
-  // Rest of your component code remains the same
   const handleAddMember = () => {
     setMembers([...members, ''])
   }
@@ -53,15 +50,15 @@ export default function SplitwisePage() {
   }
 
   const handleCreateGroup = async () => {
-    setError(null); // Reset any previous errors
-  
+    setError(null)
+
     if (!groupName.trim()) {
-      setError('Group name cannot be empty');
-      return;
+      setError('Group name cannot be empty')
+      return
     }
-  
+
     try {
-      const validMembers = members.filter(member => member.trim() !== '');
+      const validMembers = members.filter(member => member.trim() !== '')
       const response = await fetch('/api/splitwise/groups', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -69,84 +66,227 @@ export default function SplitwisePage() {
           name: groupName.trim(),
           members: validMembers,
         }),
-      });
-  
+      })
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create group');
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Failed to create group')
       }
       
-      await fetchGroups(); // Refresh the groups list
-      setIsCreateGroupOpen(false);
-      setGroupName('');
-      setMembers(['']);
+      await fetchGroups()
+      setIsCreateGroupOpen(false)
+      setGroupName('')
+      setMembers([''])
     } catch (error) {
       if (error instanceof Error) {
-        setError(error.message);
+        setError(error.message)
       } else {
-        setError('An unexpected error occurred');
+        setError('An unexpected error occurred')
       }
     }
   }
-  
+
+  const containerStyle = {
+    minHeight: '100vh',
+    backgroundColor: '#000000',
+    color: 'white',
+    padding: '2rem'
+  }
+
+  const contentStyle = {
+    maxWidth: '64rem',
+    margin: '0 auto'
+  }
+
+  const headerStyle = {
+    background: 'linear-gradient(145deg, rgba(135, 206, 235, 0.2), rgba(26, 29, 36, 0.6))',
+    padding: '2rem',
+    borderRadius: '0.5rem',
+    marginBottom: '2rem'
+  }
+
+  const titleStyle = {
+    fontSize: '2.25rem',
+    fontWeight: 'bold',
+    textAlign: 'center' as const,
+    marginBottom: '1rem'
+  }
+
+  const errorStyle = {
+    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+    border: '1px solid rgba(239, 68, 68, 0.5)',
+    color: 'rgb(252, 165, 165)',
+    padding: '1rem',
+    borderRadius: '0.5rem',
+    marginBottom: '1rem'
+  }
+
+  const createButtonStyle = {
+    color: 'rgb(135, 206, 235)',
+    display: 'block',
+    margin: '0 auto',
+    fontSize: '1.125rem',
+    marginBottom: '2rem',
+    cursor: 'pointer',
+    background: 'none',
+    border: 'none',
+    padding: '0.5rem 1rem'
+  }
+
+  const groupsHeaderStyle = {
+    fontSize: '1.5rem',
+    fontWeight: '600',
+    marginBottom: '1rem'
+  }
+
+  const emptyMessageStyle = {
+    textAlign: 'center' as const,
+    color: 'rgb(156, 163, 175)'
+  }
+
+  const groupGridStyle = {
+    display: 'grid',
+    gap: '1rem'
+  }
+
+  const groupCardStyle = {
+    padding: '1rem',
+    borderRadius: '0.5rem',
+    backgroundColor: 'rgba(31, 41, 55, 0.5)',
+    transition: 'background-color 0.2s',
+    cursor: 'pointer',
+    textDecoration: 'none',
+    color: 'white',
+    border: '1px solid rgba(255, 255, 255, 0.1)'
+  }
+
+  const groupNameStyle = {
+    fontSize: '1.25rem',
+    fontWeight: '600'
+  }
+
+  const memberCountStyle = {
+    fontSize: '0.875rem',
+    color: 'rgb(156, 163, 175)'
+  }
+
+  const modalOverlayStyle = {
+    position: 'fixed' as const,
+    inset: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 50
+  }
+
+  const modalContentStyle = {
+    backgroundColor: '#1E1E1E',
+    color: 'white',
+    padding: '1.5rem',
+    borderRadius: '0.5rem',
+    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+    width: '100%',
+    maxWidth: '28rem',
+    border: '1px solid rgba(255, 255, 255, 0.1)'
+  }
+
+  const modalTitleStyle = {
+    fontSize: '1.5rem',
+    fontWeight: 'bold',
+    textAlign: 'center' as const,
+    marginBottom: '1rem'
+  }
+
+  const inputStyle = {
+    width: '100%',
+    padding: '0.5rem',
+    marginBottom: '0.5rem',
+    backgroundColor: '#2D2D2D',
+    border: '1px solid rgb(75, 85, 99)',
+    color: 'white',
+    borderRadius: '0.375rem'
+  }
+
+  const gradientButtonStyle = {
+    width: '100%',
+    padding: '0.5rem',
+    marginBottom: '0.5rem',
+    background: 'linear-gradient(to right, #1E3B8B, #87CEEB)',
+    color: 'white',
+    borderRadius: '0.375rem',
+    border: 'none',
+    cursor: 'pointer'
+  }
+
+  const cancelButtonStyle = {
+    width: '100%',
+    padding: '0.5rem',
+    backgroundColor: '#4A5568',
+    color: 'white',
+    borderRadius: '0.375rem',
+    border: 'none',
+    cursor: 'pointer'
+  }
+
   if (status === 'loading') {
-    return <div>Loading...</div>
+    return <div style={containerStyle}>Loading...</div>
   }
 
   if (status === 'unauthenticated') {
-    return <div>Please sign in to access Splitwise</div>
+    return <div style={containerStyle}>Please sign in to access Splitwise</div>
   }
 
   return (
-    <div className="min-h-screen bg-[#121212] text-white p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-[#87CEEB] bg-opacity-20 p-8 rounded-lg mb-8">
-          <h1 className="text-4xl font-bold text-center mb-4">Dashboard</h1>
+    <div style={containerStyle}>
+      <div style={contentStyle}>
+        <div style={headerStyle}>
+          <h1 style={titleStyle}>Dashboard</h1>
         </div>
 
-       {/* Add error message display here */}
-       {error && (
-          <div className="bg-red-500/20 border border-red-500/50 text-red-300 p-4 rounded-lg mb-4">
+        {error && (
+          <div style={errorStyle}>
             {error}
           </div>
         )}
+
         <button
           onClick={() => setIsCreateGroupOpen(true)}
-          className="text-[#87CEEB] hover:text-[#5F9EA0] mb-8 block mx-auto text-lg"
+          style={createButtonStyle}
         >
           Create New Group
         </button>
 
-        <h2 className="text-2xl font-semibold mb-4">Your Groups</h2>
+        <h2 style={groupsHeaderStyle}>Your Groups</h2>
         
         {groups.length === 0 ? (
-          <p className="text-center text-gray-400">No groups available. Create a new group!</p>
+          <p style={emptyMessageStyle}>No groups available. Create a new group!</p>
         ) : (
-          <div className="grid gap-4">
+          <div style={groupGridStyle}>
             {groups.map(group => (
               <a
                 key={group._id}
                 href={`/splitwise/group/${group._id}`}
-                className="block p-4 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors"
+                style={groupCardStyle}
               >
-                <h3 className="text-xl font-semibold">{group.name}</h3>
-                <p className="text-sm text-gray-400">{group.members.length} members</p>
+                <h3 style={groupNameStyle}>{group.name}</h3>
+                <p style={memberCountStyle}>{group.members.length} members</p>
               </a>
             ))}
           </div>
         )}
 
         {isCreateGroupOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-[#1E1E1E] text-white p-6 rounded shadow-lg w-full max-w-md">
-              <h2 className="text-2xl font-bold text-center mb-4">Create New Group</h2>
-              {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
+          <div style={modalOverlayStyle}>
+            <div style={modalContentStyle}>
+              <h2 style={modalTitleStyle}>Create New Group</h2>
+              {error && <p style={{ ...errorStyle, marginBottom: '0.5rem' }}>{error}</p>}
               <input
                 type="text"
                 placeholder="Group Name"
                 value={groupName}
                 onChange={(e) => setGroupName(e.target.value)}
-                className="w-full p-2 mb-4 bg-[#2D2D2D] border border-gray-700 text-white rounded"
+                style={inputStyle}
               />
               {members.map((member, index) => (
                 <input
@@ -155,24 +295,24 @@ export default function SplitwisePage() {
                   placeholder={`Member ${index + 1}`}
                   value={member}
                   onChange={(e) => handleMemberChange(index, e.target.value)}
-                  className="w-full p-2 mb-2 bg-[#2D2D2D] border border-gray-700 text-white rounded"
+                  style={inputStyle}
                 />
               ))}
               <button
                 onClick={handleAddMember}
-                className="w-full py-2 mb-2 bg-gradient-to-r from-[#1E3B8B] to-[#87CEEB] hover:opacity-90 text-white rounded"
+                style={gradientButtonStyle}
               >
                 ADD MEMBER
               </button>
               <button
                 onClick={handleCreateGroup}
-                className="w-full py-2 mb-2 bg-gradient-to-r from-[#1E3B8B] to-[#87CEEB] hover:opacity-90 text-white rounded"
+                style={gradientButtonStyle}
               >
                 CREATE GROUP
               </button>
               <button
                 onClick={() => setIsCreateGroupOpen(false)}
-                className="w-full py-2 bg-gray-700 hover:bg-gray-600 text-white rounded"
+                style={cancelButtonStyle}
               >
                 CANCEL
               </button>

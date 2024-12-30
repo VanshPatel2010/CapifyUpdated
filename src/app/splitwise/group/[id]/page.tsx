@@ -1,9 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useParams } from 'next/navigation'
-import { useCallback } from 'react';
 
 interface Group {
   _id: string
@@ -40,7 +39,99 @@ export default function GroupPage() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isAddingExpense, setIsAddingExpense] = useState(false)
+  const [splitError, setSplitError] = useState<string | null>(null)
 
+  const containerStyle: React.CSSProperties = {
+    minHeight: '100vh',
+    backgroundColor: '#121212',
+    color: 'white',
+    padding: '2rem',
+  }
+
+  const errorMessageStyle: React.CSSProperties = {
+    color: '#EF4444',
+    fontSize: '0.875rem',
+    marginTop: '0.5rem',
+  }
+  
+  const contentStyle: React.CSSProperties = {
+    maxWidth: '64rem',
+    margin: '0 auto',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '2rem',
+  }
+
+  const headingStyle: React.CSSProperties = {
+    fontSize: '1.875rem',
+    fontWeight: 'bold',
+    textAlign: 'center',
+  }
+
+  const sectionStyle: React.CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '1rem',
+  }
+
+  const sectionTitleStyle: React.CSSProperties = {
+    fontSize: '1.25rem',
+    fontWeight: '600',
+    color: '#87CEEB',
+  }
+
+  const inputStyle: React.CSSProperties = {
+    backgroundColor: '#2D2D2D',
+    borderColor: '#4A5568',
+    color: 'white',
+    padding: '0.5rem 1rem',
+    borderRadius: '0.25rem',
+    width: '100%',
+  }
+
+  const buttonStyle: React.CSSProperties = {
+    backgroundColor: '#3B82F6',
+    color: 'white',
+    padding: '0.5rem 1rem',
+    borderRadius: '0.25rem',
+    cursor: 'pointer',
+    border: 'none',
+  }
+
+  const memberStyle: React.CSSProperties = {
+    padding: '0.5rem',
+    backgroundColor: '#2D2D2D',
+    borderRadius: '0.25rem',
+  }
+
+  const expenseCardStyle: React.CSSProperties = {
+    padding: '1rem',
+    backgroundColor: '#2D2D2D',
+    borderRadius: '0.25rem',
+  }
+
+  const validateSplits = (splits: Split[], totalAmount: number): boolean => {
+    const sum = splits.reduce((acc, split) => acc + split.amount, 0)
+    return Math.abs(sum - totalAmount) < 0.01
+  }
+
+  const handleSplitChange = (user: string, newAmount: string) => {
+    const newAmount_num = parseFloat(newAmount) || 0
+    const newSplits = splits.map(split =>
+      split.user === user ? { ...split, amount: newAmount_num } : split
+    )
+    setSplits(newSplits)
+    
+    setSplitError(null)
+    
+    if (splitType === 'unequal') {
+      const totalAmount = parseFloat(amount)
+      const currentTotal = newSplits.reduce((acc, split) => acc + split.amount, 0)
+      if (Math.abs(currentTotal - totalAmount) >= 0.01) {
+        setSplitError(`Current total (₹${currentTotal.toFixed(2)}) doesn't match expense amount (₹${totalAmount.toFixed(2)})`)
+      }
+    }
+  }
 
   const fetchGroupDetails = useCallback(async () => {
     setIsLoading(true)
@@ -78,7 +169,7 @@ export default function GroupPage() {
       fetchGroupDetails()
       fetchExpenses()
     }
-  }, [status, params.id, fetchGroupDetails, fetchExpenses] )
+  }, [status, params.id, fetchGroupDetails, fetchExpenses])
 
   useEffect(() => {
     if (group && group.members.length > 0) {
@@ -86,10 +177,6 @@ export default function GroupPage() {
       setSplits(group.members.map(member => ({ user: member, amount: equalSplit })))
     }
   }, [group, amount])
-
-  
-
-  
 
   const handleAddMember = async () => {
     if (!newMember.trim()) return
@@ -113,15 +200,21 @@ export default function GroupPage() {
     }
   }
 
-  const handleSplitChange = (user: string, newAmount: string) => {
-    const newSplits = splits.map(split =>
-      split.user === user ? { ...split, amount: parseFloat(newAmount) || 0 } : split
-    )
-    setSplits(newSplits)
-  }
-
   const handleAddExpense = async () => {
-    if (!description || !amount || !paidBy) return
+    if (!description || !amount || !paidBy) {
+      setError('Please fill in all required fields')
+      return
+    }
+
+    const totalAmount = parseFloat(amount)
+    
+    if (splitType === 'unequal') {
+      if (!validateSplits(splits, totalAmount)) {
+        setSplitError(`Split amounts must sum up to the total expense (₹${totalAmount.toFixed(2)})`)
+        alert(`Split amounts must sum up to the total expense (₹${totalAmount.toFixed(2)})`)
+        return
+      }
+    }
 
     setIsAddingExpense(true)
     try {
@@ -130,7 +223,7 @@ export default function GroupPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           description,
-          amount: parseFloat(amount),
+          amount: totalAmount,
           paidBy,
           splitType,
           splits,
@@ -147,6 +240,7 @@ export default function GroupPage() {
       setAmount('')
       setPaidBy('')
       setSplitType('equal')
+      setSplitError(null)
       fetchExpenses()
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to add expense')
@@ -157,25 +251,25 @@ export default function GroupPage() {
 
   if (status === 'loading' || isLoading) {
     return (
-      <div className="min-h-screen bg-[#121212] text-white flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      <div style={{...containerStyle, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+        <div style={{width: '2rem', height: '2rem', border: '4px solid #3B82F6', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite'}}></div>
       </div>
     )
   }
 
   if (status === 'unauthenticated') {
     return (
-      <div className="min-h-screen bg-[#121212] text-white flex items-center justify-center">
-        <p className="text-2xl">Please sign in to access this page.</p>
+      <div style={{...containerStyle, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+        <p style={{fontSize: '1.5rem'}}>Please sign in to access this page.</p>
       </div>
     )
   }
 
   if (error || !group) {
     return (
-      <div className="min-h-screen bg-[#121212] text-white flex items-center justify-center">
-        <div className="bg-red-500 text-white p-4 rounded">
-          <h2 className="font-bold">Error</h2>
+      <div style={{...containerStyle, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+        <div style={{backgroundColor: '#EF4444', color: 'white', padding: '1rem', borderRadius: '0.25rem'}}>
+          <h2 style={{fontWeight: 'bold'}}>Error</h2>
           <p>{error || 'Failed to load group data'}</p>
         </div>
       </div>
@@ -183,60 +277,60 @@ export default function GroupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#121212] text-white p-8">
-      <div className="max-w-4xl mx-auto space-y-8">
-        <h1 className="text-3xl font-bold text-center">{group.name}</h1>
+    <div style={containerStyle}>
+      <div style={contentStyle}>
+        <h1 style={headingStyle}>{group.name}</h1>
 
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold text-[#87CEEB]">Members</h2>
-          <div className="space-y-2">
+        <div style={sectionStyle}>
+          <h2 style={sectionTitleStyle}>Members</h2>
+          <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
             {group.members.map((member) => (
-              <div key={member} className="p-2 bg-[#2D2D2D] rounded">
+              <div key={member} style={memberStyle}>
                 {member}
               </div>
             ))}
           </div>
-          <div className="flex gap-2">
+          <div style={{display: 'flex', gap: '0.5rem'}}>
             <input
               placeholder="Add new member"
               value={newMember}
               onChange={(e) => setNewMember(e.target.value)}
-              className="bg-[#2D2D2D] border-gray-700 text-white px-4 py-2 rounded w-full"
+              style={inputStyle}
             />
             <button
               onClick={handleAddMember}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+              style={buttonStyle}
             >
               ADD MEMBER
             </button>
           </div>
         </div>
 
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold text-[#87CEEB]">Add New Expense</h2>
+        <div style={sectionStyle}>
+          <h2 style={sectionTitleStyle}>Add New Expense</h2>
           <input
             placeholder="Description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="bg-[#2D2D2D] border-gray-700 text-white px-4 py-2 rounded w-full"
+            style={inputStyle}
           />
           <input
             type="number"
             placeholder="0"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className="bg-[#2D2D2D] border-gray-700 text-white px-4 py-2 rounded w-full"
+            style={inputStyle}
           />
           <select
             value={paidBy}
             onChange={(e) => setPaidBy(e.target.value)}
-            className="bg-[#2D2D2D] border-gray-700 text-white px-4 py-2 rounded w-full"
+            style={inputStyle}
           >
             <option value="" disabled>
               Select Payer
             </option>
             {group.members.map((member) => (
-              <option key={member} value={member} className="bg-[#2D2D2D]">
+              <option key={member} value={member}>
                 {member}
               </option>
             ))}
@@ -244,68 +338,78 @@ export default function GroupPage() {
           <select
             value={splitType}
             onChange={(e) => setSplitType(e.target.value as 'equal' | 'unequal')}
-            className="bg-[#2D2D2D] border-gray-700 text-white px-4 py-2 rounded w-full"
+            style={inputStyle}
           >
-            <option value="equal" className="bg-[#2D2D2D]">
+            <option value="equal">
               Split Equally
             </option>
-            <option value="unequal" className="bg-[#2D2D2D]">
+            <option value="unequal">
               Split Unequally
             </option>
           </select>
           {splitType === 'unequal' && (
-            <div className="space-y-2">
+            <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
               {splits.map((split, index) => (
-                <div key={index} className="flex gap-2">
+                <div key={index} style={{display: 'flex', gap: '0.5rem'}}>
                   <input
                     value={split.user}
                     disabled
-                    className="bg-[#2D2D2D] border-gray-700 text-white px-4 py-2 rounded flex-grow"
+                    style={{...inputStyle, flexGrow: 1}}
                   />
                   <input
                     type="number"
                     value={split.amount}
                     onChange={(e) => handleSplitChange(split.user, e.target.value)}
-                    className="bg-[#2D2D2D] border-gray-700 text-white px-4 py-2 rounded w-24"
+                    style={{...inputStyle, width: '6rem'}}
                   />
                 </div>
               ))}
+              {splitError && (
+                <div style={errorMessageStyle}>
+                  {splitError}
+                </div>
+              )}
+            </div>
+          )}
+          {error && (
+            <div style={errorMessageStyle}>
+              {error}
             </div>
           )}
           <button
             onClick={handleAddExpense}
             disabled={isAddingExpense}
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+            style={{...buttonStyle, width: '100%'}}
           >
             {isAddingExpense ? 'Adding Expense...' : 'ADD EXPENSE'}
           </button>
         </div>
 
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold text-[#87CEEB]">Expenses</h2>
+        <div style={sectionStyle}>
+          <h2 style={sectionTitleStyle}>Expenses</h2>
           {expenses.length === 0 ? (
-            <p className="text-center text-gray-400">No expenses yet. Add your first expense!</p>
+            <p style={{textAlign: 'center', color: '#9CA3AF'}}>No expenses yet. Add your first expense!</p>
           ) : (
             expenses.map((expense) => (
-              <div key={expense._id} className="p-4 bg-[#2D2D2D] rounded">
-                <div className="flex justify-between items-center">
+              <div key={expense._id} style={expenseCardStyle}>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                   <div>
-                    <h3 className="font-semibold">{expense.description}</h3>
-                    <p className="text-sm text-gray-400">Paid by {expense.paidBy}</p>
-                    <p className="text-xs text-gray-500">Split: {expense.splitType}</p>
+                    <h3 style={{fontWeight: '600'}}>{expense.description}</h3>
+                    <p style={{fontSize: '0.875rem', color: '#9CA3AF'}}>Paid by {expense.paidBy}</p>
+                    <p style={{fontSize: '0.75rem', color: '#6B7280'}}>Split: {expense.splitType}</p>
                   </div>
-                  <p className="text-lg">₹{expense.amount.toFixed(2)}</p>
+                  <p style={{fontSize: '1.125rem'}}>₹{expense.amount.toFixed(2)}</p>
                 </div>
-                <div className="mt-2 text-sm">
-  <p className="font-semibold">Split details:</p>
-  {expense.splits && expense.splits.length > 0 ? (
-    expense.splits.map((split, index) => (
-      <p key={index}>{split.user}: ₹{split.amount.toFixed(2)}</p>
-    ))
-  ) : (
-    <p>No split details available.</p>
-  )}
-</div>  
+                <div style={{marginTop: '0.5rem', fontSize: '0.875rem'}}>
+                  <p style={{fontWeight: '600'}}>Split details:</p>
+                  {expense.splits && expense.splits.length > 0 ? (
+                    expense.splits.map((split, index) => (
+                      <p key={index}>{split.user}: ₹{split.amount.toFixed(2)}</p>
+                    ))
+                  ) : (
+                    <p>No split details available.</p>
+                  )}
+                </div>  
               </div>
             ))
           )}
@@ -314,3 +418,4 @@ export default function GroupPage() {
     </div>
   )
 }
+
