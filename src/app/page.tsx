@@ -41,10 +41,7 @@ export default function Page() {
     background: 'linear-gradient(145deg, rgba(20, 184, 166, 0.2), rgba(26, 29, 36, 0.6))'
   }
 
-  const resourcesCardStyle = {
-    ...cardBaseStyle,
-    background: 'linear-gradient(145deg, rgba(29, 78, 216, 0.2), rgba(26, 29, 36, 0.6))'
-  }
+  
 
   const cardTitleStyle = {
     fontSize: '1.5rem',
